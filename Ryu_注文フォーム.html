@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ryu リメイク着物 ご注文フォーム</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:#f7f6f3;color:#222;min-height:100vh;padding:20px 16px 40px}
@@ -64,8 +63,9 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
 .btn-submit:active{opacity:.85}
 .btn-submit:disabled{opacity:.5;cursor:not-allowed}
 .btn-fix{width:100%;padding:14px;font-size:15px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#666;font-family:inherit;font-weight:600;margin-top:10px}
-.btn-screenshot{width:100%;padding:16px;font-size:17px;border:1.5px solid #2563EB;border-radius:12px;cursor:pointer;background:#fff;color:#2563EB;font-family:inherit;font-weight:700;margin-top:10px;transition:all .15s}
-.btn-screenshot:active{background:#EFF6FF}
+.btn-line{width:100%;padding:18px;font-size:18px;border:none;border-radius:12px;cursor:pointer;background:#06C755;color:#fff;font-family:inherit;font-weight:700;margin-top:10px;transition:opacity .15s}
+.btn-line:active{opacity:.85}
+.btn-new{width:100%;padding:16px;font-size:17px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#222;font-family:inherit;font-weight:600;margin-top:10px}
 .confirm-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee;font-size:16px}
 .confirm-label{color:#888;width:120px;flex-shrink:0}
 .confirm-val{color:#222;text-align:right;word-break:break-all}
@@ -75,7 +75,6 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
 .done-icon{font-size:64px;margin-bottom:12px}
 .done-title{font-size:24px;font-weight:700;margin-bottom:8px}
 .done-sub{font-size:16px;color:#888;line-height:1.7;margin-bottom:24px}
-.btn-new{width:100%;padding:16px;font-size:17px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#222;font-family:inherit;font-weight:600;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -246,8 +245,8 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
         <div class="done-icon">✅</div>
         <div class="done-title">ご注文を受け付けました！</div>
         <div class="done-sub" id="done-msg">ありがとうございます。<br>Ryuよりご連絡いたします。</div>
+        <button class="btn-line" onclick="shareToLine()">💬　注文内容をLINEで送る</button>
         <button class="btn-new" onclick="newOrder()">＋　別のご注文をする</button>
-        <button class="btn-screenshot" onclick="takeScreenshot()">📸　この画面をスクリーンショット</button>
       </div>
     </div>
   </div>
@@ -292,8 +291,7 @@ document.querySelectorAll('.opt-btn:not(#btn-sonota)').forEach(function(b){
 
 document.getElementById('btn-sonota').addEventListener('click',function(){
   this.classList.toggle('selected');
-  let wrap=document.getElementById('sonota-wrap');
-  wrap.classList.toggle('show',this.classList.contains('selected'));
+  document.getElementById('sonota-wrap').classList.toggle('show',this.classList.contains('selected'));
   rebuildSelections();
 });
 
@@ -372,6 +370,52 @@ function buildConfirm(){
   }).join('');
 }
 
+function shareToLine(){
+  rebuildSelections();
+  let remakeAmt=state.remakes.reduce(function(a,r){return a+r.price;},0);
+  let optAmt=state.options.reduce(function(a,o){return a+o.price;},0);
+  let total=remakeAmt+optAmt;
+  let telDisp=state.ctel.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3');
+
+  let lines=[
+    '【Ryuリメイクオーダー受付】',
+    '',
+    'お名前：'+state.cname+'様',
+    '電話番号：'+telDisp,
+  ];
+  if(state.ccontact)lines.push('LINE・メール：'+state.ccontact);
+  lines.push('');
+  lines.push('着物の種類：'+state.kimono);
+  lines.push('状態：'+state.cond);
+  lines.push('');
+  lines.push('■ リメイク内容');
+  state.remakes.forEach(function(r){
+    lines.push('・'+r.label+'　¥'+r.price.toLocaleString());
+  });
+  if(state.options.length>0){
+    lines.push('');
+    lines.push('■ オプション');
+    state.options.forEach(function(o){
+      lines.push('・'+o.label+'　＋¥'+o.price.toLocaleString());
+    });
+  }
+  if(state.sizenote){
+    lines.push('');
+    lines.push('■ ご要望');
+    lines.push(state.sizenote);
+  }
+  lines.push('');
+  lines.push('━━━━━━━━━━');
+  lines.push('お見積合計：¥'+total.toLocaleString());
+  lines.push('━━━━━━━━━━');
+  lines.push('');
+  lines.push('ご注文ありがとうございます🎋');
+  lines.push('仕上がりましたらご連絡いたします。');
+
+  let text=encodeURIComponent(lines.join('\n'));
+  window.open('https://line.me/R/msg/text/?'+text,'_blank');
+}
+
 function fileToBase64(file){
   return new Promise(function(resolve,reject){
     let r=new FileReader();
@@ -400,24 +444,6 @@ async function submitOrder(){
     msg.style.display='none';btn.style.display='block';btn.disabled=false;
     alert('送信中にエラーが発生しました。もう一度お試しください。');
   }
-}
-
-function takeScreenshot(){
-  let btn=document.querySelector('.btn-screenshot');
-  btn.textContent='📸 保存中...';
-  btn.disabled=true;
-  html2canvas(document.getElementById('main-wrap'),{
-    backgroundColor:'#f7f6f3',
-    scale:2,
-    useCORS:true
-  }).then(function(canvas){
-    let link=document.createElement('a');
-    link.download='Ryu注文完了_'+state.cname+'.png';
-    link.href=canvas.toDataURL('image/png');
-    link.click();
-    btn.textContent='📸 この画面をスクリーンショット';
-    btn.disabled=false;
-  });
 }
 
 function newOrder(){
