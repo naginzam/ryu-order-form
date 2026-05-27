@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ryu リメイク着物 ご注文フォーム</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:#f7f6f3;color:#222;min-height:100vh;padding:20px 16px 40px}
+.wrap{max-width:600px;margin:0 auto}
+h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222}
+.subtitle{font-size:14px;color:#888;text-align:center;margin-bottom:24px}
+.step-indicator{display:flex;align-items:flex-start;margin-bottom:28px}
+.step-col{display:flex;flex-direction:column;align-items:center;flex:1}
+.dot{width:34px;height:34px;border-radius:50%;border:2px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#aaa;background:#fff;transition:all .2s}
+.dot.active{background:#2563EB;border-color:#2563EB;color:#fff}
+.dot.done{background:#16A34A;border-color:#16A34A;color:#fff}
+.step-label{font-size:11px;color:#aaa;margin-top:4px;text-align:center}
+.step-line-wrap{flex:1;padding-top:17px}
+.step-line{height:2px;background:#ddd;transition:background .2s}
+.step-line.done{background:#16A34A}
+.panel{display:none}
+.panel.active{display:block}
+.card{background:#fff;border-radius:16px;padding:24px 20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-title{font-size:20px;font-weight:600;margin-bottom:4px}
+.card-sub{font-size:15px;color:#888;margin-bottom:20px}
+.field{margin-bottom:20px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:17px;font-weight:600;margin-bottom:6px}
+.field .sublabel{font-size:13px;color:#888;margin-bottom:6px}
+.field input,.field textarea{width:100%;padding:14px 16px;font-size:17px;border:1.5px solid #ddd;border-radius:10px;background:#fafafa;color:#222;font-family:inherit;transition:border .15s}
+.field input:focus,.field textarea:focus{outline:none;border-color:#2563EB;background:#fff}
+.field textarea{resize:vertical;min-height:90px;line-height:1.6}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sel-btn{padding:16px 10px;font-size:15px;border:1.5px solid #ddd;border-radius:10px;cursor:pointer;background:#fafafa;color:#222;text-align:center;font-family:inherit;line-height:1.4;transition:all .15s;width:100%}
+.sel-btn:active{transform:scale(.98)}
+.sel-btn.selected{border:2px solid #2563EB;background:#EFF6FF;color:#1D4ED8;font-weight:600}
+.opt-btn{width:100%;padding:15px 16px;font-size:16px;border:1.5px solid #ddd;border-radius:10px;cursor:pointer;background:#fafafa;color:#222;text-align:left;font-family:inherit;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;transition:all .15s}
+.opt-btn:last-of-type{margin-bottom:0}
+.opt-btn:active{transform:scale(.99)}
+.opt-btn.selected{border:2px solid #2563EB;background:#EFF6FF;color:#1D4ED8;font-weight:600}
+.opt-price{font-size:13px;color:#aaa;flex-shrink:0;margin-left:8px}
+.opt-btn.selected .opt-price{color:#2563EB}
+.check{width:22px;height:22px;border-radius:50%;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent;flex-shrink:0;margin-left:6px}
+.opt-btn.selected .check{background:#2563EB;border-color:#2563EB;color:#fff}
+.sonota-wrap{display:none;margin-top:10px}
+.sonota-wrap.show{display:block}
+.upload-area{border:2px dashed #ccc;border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:#fafafa;transition:all .15s}
+.upload-area:active{background:#EFF6FF}
+.upload-icon{font-size:36px;margin-bottom:8px}
+.upload-txt{font-size:16px;color:#666}
+.upload-txt2{font-size:13px;color:#aaa;margin-top:4px}
+.preview-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.preview-img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid #ddd}
+.price-box{background:#EFF6FF;border-radius:12px;padding:16px 18px;margin-bottom:16px}
+.price-row{display:flex;justify-content:space-between;font-size:16px;padding:4px 0;color:#666}
+.price-total{display:flex;justify-content:space-between;font-size:22px;font-weight:700;padding-top:10px;border-top:1.5px solid #BFDBFE;margin-top:8px;color:#1D4ED8}
+.btn-row{display:flex;gap:10px;margin-top:0}
+.btn-back{flex:1;padding:16px;font-size:17px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#666;font-family:inherit;font-weight:600}
+.btn-next{flex:2;padding:16px;font-size:17px;border:none;border-radius:12px;cursor:pointer;background:#2563EB;color:#fff;font-family:inherit;font-weight:700;transition:opacity .15s}
+.btn-next:active{opacity:.85}
+.btn-submit{width:100%;padding:18px;font-size:18px;border:none;border-radius:12px;cursor:pointer;background:#16A34A;color:#fff;font-family:inherit;font-weight:700;transition:opacity .15s}
+.btn-submit:active{opacity:.85}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed}
+.btn-fix{width:100%;padding:14px;font-size:15px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#666;font-family:inherit;font-weight:600;margin-top:10px}
+.confirm-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee;font-size:16px}
+.confirm-label{color:#888;width:120px;flex-shrink:0}
+.confirm-val{color:#222;text-align:right;word-break:break-all}
+.err{color:#DC2626;font-size:14px;margin-top:6px;display:none}
+.sending{text-align:center;font-size:16px;color:#666;padding:12px 0;display:none}
+.done-wrap{text-align:center;padding:32px 20px}
+.done-icon{font-size:64px;margin-bottom:12px}
+.done-title{font-size:24px;font-weight:700;margin-bottom:8px}
+.done-sub{font-size:16px;color:#888;line-height:1.7;margin-bottom:24px}
+.btn-new{width:100%;padding:16px;font-size:17px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#222;font-family:inherit;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎋 Ryu リメイク着物</h1>
+  <p class="subtitle">ご注文フォーム</p>
+
+  <div class="step-indicator" id="step-ind">
+    <div class="step-col"><div class="dot active" id="d1">1</div><div class="step-label">お客様</div></div>
+    <div class="step-line-wrap"><div class="step-line" id="l1"></div></div>
+    <div class="step-col"><div class="dot" id="d2">2</div><div class="step-label">着物</div></div>
+    <div class="step-line-wrap"><div class="step-line" id="l2"></div></div>
+    <div class="step-col"><div class="dot" id="d3">3</div><div class="step-label">リメイク</div></div>
+    <div class="step-line-wrap"><div class="step-line" id="l3"></div></div>
+    <div class="step-col"><div class="dot" id="d4">4</div><div class="step-label">写真</div></div>
+    <div class="step-line-wrap"><div class="step-line" id="l4"></div></div>
+    <div class="step-col"><div class="dot" id="d5">5</div><div class="step-label">確認</div></div>
+  </div>
+
+  <!-- ステップ1：お客様情報 -->
+  <div id="p1" class="panel active">
+    <div class="card">
+      <div class="card-title">お客様の情報</div>
+      <div class="card-sub">わかる範囲で入力してください</div>
+      <div class="field">
+        <label>お名前</label>
+        <input type="text" id="cname" placeholder="例：山田 花子">
+        <div class="err" id="err-name">お名前を入力してください</div>
+      </div>
+      <div class="field">
+        <label>携帯電話番号</label>
+        <div class="sublabel">ハイフンなしで入力（例：09012345678）</div>
+        <input type="tel" id="ctel" placeholder="09012345678" inputmode="numeric">
+        <div class="err" id="err-tel">正しい携帯電話番号を入力してください</div>
+      </div>
+      <div class="field">
+        <label>LINEまたはメール <span style="font-size:13px;font-weight:400;color:#aaa">（任意）</span></label>
+        <input type="text" id="ccontact" placeholder="例：hanako0123 / hanako@mail.com">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-next" style="flex:1" onclick="goNext(1)">次へ　→</button>
+    </div>
+  </div>
+
+  <!-- ステップ2：着物情報 -->
+  <div id="p2" class="panel">
+    <div class="card">
+      <div class="card-title">着物の種類</div>
+      <div class="card-sub">一番近いものを選んでください</div>
+      <div class="grid2">
+        <button class="sel-btn" data-group="kimono" data-label="小紋">小紋</button>
+        <button class="sel-btn" data-group="kimono" data-label="訪問着">訪問着</button>
+        <button class="sel-btn" data-group="kimono" data-label="振袖">振袖</button>
+        <button class="sel-btn" data-group="kimono" data-label="紬・木綿">紬・木綿</button>
+        <button class="sel-btn" data-group="kimono" data-label="留袖">留袖</button>
+        <button class="sel-btn" data-group="kimono" data-label="その他">その他</button>
+      </div>
+      <div class="err" id="err-kimono" style="margin-top:8px">種類を選んでください</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="font-size:18px;margin-bottom:16px">着物の状態</div>
+      <button class="sel-btn" style="width:100%;text-align:left;padding:14px 16px;font-size:16px;margin-bottom:10px" data-group="cond" data-label="良好">✅　きれいな状態</button>
+      <button class="sel-btn" style="width:100%;text-align:left;padding:14px 16px;font-size:16px;margin-bottom:10px" data-group="cond" data-label="シミあり">⚠️　シミがある</button>
+      <button class="sel-btn" style="width:100%;text-align:left;padding:14px 16px;font-size:16px" data-group="cond" data-label="破れあり">🔶　破れや傷みがある</button>
+      <div class="err" id="err-cond" style="margin-top:8px">状態を選んでください</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(2)">← 戻る</button>
+      <button class="btn-next" onclick="goNext(2)">次へ　→</button>
+    </div>
+  </div>
+
+  <!-- ステップ3：リメイク内容 -->
+  <div id="p3" class="panel">
+    <div class="card">
+      <div class="card-title">リメイク内容</div>
+      <div class="card-sub">複数えらんでも大丈夫です</div>
+      <button class="opt-btn" data-type="remake" data-price="18000" data-label="セットアップ">
+        <span>セットアップ</span><span class="opt-price">¥18,000</span><span class="check">✓</span>
+      </button>
+      <button class="opt-btn" data-type="remake" data-price="15000" data-label="ワンピース">
+        <span>ワンピース</span><span class="opt-price">¥15,000</span><span class="check">✓</span>
+      </button>
+      <button class="opt-btn" data-type="remake" data-price="9000" data-label="パンツ／スカート">
+        <span>パンツ／スカート</span><span class="opt-price">¥9,000</span><span class="check">✓</span>
+      </button>
+      <button class="opt-btn" data-type="remake" data-price="5000" data-label="バッグ">
+        <span>バッグ</span><span class="opt-price">¥5,000</span><span class="check">✓</span>
+      </button>
+      <button class="opt-btn" data-type="remake" data-price="3000" data-label="クッション2個">
+        <span>クッション2個</span><span class="opt-price">¥3,000</span><span class="check">✓</span>
+      </button>
+      <button class="opt-btn" data-type="remake" data-price="2000" data-label="タペストリー">
+        <span>タペストリー</span><span class="opt-price">¥2,000</span><span class="check">✓</span>
+      </button>
+      <button class="opt-btn" id="btn-sonota" data-type="remake" data-price="0" data-label="その他" onclick="toggleSonota(this)">
+        <span>その他</span><span class="opt-price">金額を入力</span><span class="check">✓</span>
+      </button>
+      <div class="sonota-wrap" id="sonota-wrap">
+        <div class="field" style="margin-bottom:8px">
+          <label style="font-size:15px">内容を教えてください</label>
+          <input type="text" id="sonota-text" placeholder="例：のれん、帽子など">
+        </div>
+        <div class="field">
+          <label style="font-size:15px">金額（円）</label>
+          <input type="number" id="sonota-price" placeholder="例：8000" inputmode="numeric" min="0" oninput="updateSonotaPrice()">
+        </div>
+      </div>
+      <div class="err" id="err-remake" style="margin-top:8px">ひとつ以上選んでください</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="font-size:18px;margin-bottom:16px">オプション（任意）</div>
+      <button class="opt-btn" data-type="option" data-price="5000" data-label="お急ぎ仕上げ">
+        <span>お急ぎ仕上げ</span><span class="opt-price">＋¥5,000</span><span class="check">✓</span>
+      </button>
+      <div class="field" style="margin-top:16px;margin-bottom:0">
+        <label>サイズ・ご要望（任意）</label>
+        <textarea id="sizenote" placeholder="例：身長158センチ、少し大きめにしてほしい　など"></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(3)">← 戻る</button>
+      <button class="btn-next" onclick="goNext(3)">次へ　→</button>
+    </div>
+  </div>
+
+  <!-- ステップ4：写真 -->
+  <div id="p4" class="panel">
+    <div class="card">
+      <div class="card-title">お着物の写真</div>
+      <div class="card-sub">スキップしても大丈夫です</div>
+      <div class="upload-area" onclick="document.getElementById('img-input').click()">
+        <div class="upload-icon">📷</div>
+        <div class="upload-txt">ここをタップして写真を選ぶ</div>
+        <div class="upload-txt2">着物全体・気になる箇所など</div>
+      </div>
+      <input type="file" id="img-input" accept="image/*" multiple style="display:none" onchange="previewImgs(this)">
+      <div class="preview-wrap" id="preview-area"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(4)">← 戻る</button>
+      <button class="btn-next" onclick="goNext(4)">次へ　→</button>
+    </div>
+  </div>
+
+  <!-- ステップ5：確認 -->
+  <div id="p5" class="panel">
+    <div class="card">
+      <div class="card-title">内容のご確認</div>
+      <div class="card-sub">こちらの内容でよろしいですか？</div>
+      <div id="confirm-area"></div>
+    </div>
+    <div class="price-box">
+      <div class="price-row"><span>リメイク内容</span><span id="c-remake">¥0</span></div>
+      <div class="price-row"><span>オプション</span><span id="c-opt">¥0</span></div>
+      <div class="price-total"><span>お見積合計</span><span id="c-total">¥0</span></div>
+    </div>
+    <button class="btn-submit" id="submit-btn" onclick="submitOrder()">✅　この内容で注文する</button>
+    <div class="sending" id="sending-msg">送信中です。少々お待ちください…</div>
+    <button class="btn-fix" onclick="goBack(5)">← 内容を直す</button>
+  </div>
+
+  <!-- 完了 -->
+  <div id="p6" class="panel">
+    <div class="card">
+      <div class="done-wrap">
+        <div class="done-icon">✅</div>
+        <div class="done-title">ご注文を受け付けました！</div>
+        <div class="done-sub" id="done-msg">ありがとうございます。<br>Ryuよりご連絡いたします。</div>
+        <button class="btn-new" onclick="newOrder()">＋　別のご注文をする</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const GAS_URL='https://script.google.com/macros/s/AKfycbzDZC4z3mPNtL-TXLR4gN09y_n22BTy-PBGF1sqIfrYW-05V47LYtlxoIAdSMni_KX_/exec';
+let state={cname:'',ctel:'',ccontact:'',kimono:'',cond:'',remakes:[],options:[],sizenote:'',imgFiles:[]};
+
+function showStep(n){
+  document.querySelectorAll('.panel').forEach(function(p,i){p.classList.toggle('active',i===n-1);});
+  for(let i=1;i<=5;i++){
+    let d=document.getElementById('d'+i);
+    if(!d)continue;
+    d.classList.remove('active','done');
+    if(i<n){d.classList.add('done');d.textContent='✓';}
+    else if(i===n){d.classList.add('active');d.textContent=i;}
+    else d.textContent=i;
+    let l=document.getElementById('l'+i);
+    if(l)l.classList.toggle('done',i<n);
+  }
+  window.scrollTo(0,0);
+}
+
+document.querySelectorAll('.sel-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    let g=this.dataset.group;
+    document.querySelectorAll('.sel-btn[data-group="'+g+'"]').forEach(function(x){x.classList.remove('selected');});
+    this.classList.add('selected');
+    if(g==='kimono')state.kimono=this.dataset.label;
+    if(g==='cond')state.cond=this.dataset.label;
+  });
+});
+
+document.querySelectorAll('.opt-btn:not(#btn-sonota)').forEach(function(b){
+  b.addEventListener('click',function(){
+    this.classList.toggle('selected');
+    rebuildSelections();
+  });
+});
+
+function toggleSonota(btn){
+  btn.classList.toggle('selected');
+  let wrap=document.getElementById('sonota-wrap');
+  wrap.classList.toggle('show',btn.classList.contains('selected'));
+  rebuildSelections();
+}
+
+function updateSonotaPrice(){
+  let btn=document.getElementById('btn-sonota');
+  if(btn.classList.contains('selected'))rebuildSelections();
+}
+
+function rebuildSelections(){
+  state.remakes=[];state.options=[];
+  document.querySelectorAll('.opt-btn.selected').forEach(function(b){
+    let price=parseInt(b.dataset.price)||0;
+    let label=b.dataset.label;
+    if(label==='その他'){
+      let txt=document.getElementById('sonota-text').value.trim();
+      let p=parseInt(document.getElementById('sonota-price').value)||0;
+      label='その他'+(txt?'（'+txt+'）':'');
+      price=p;
+    }
+    if(b.dataset.type==='remake')state.remakes.push({label,price});
+    else state.options.push({label,price});
+  });
+}
+
+function isValidTel(v){return /^0[789]0\d{8}$/.test(v.replace(/-/g,''));}
+
+function goNext(from){
+  if(from===1){
+    let n=document.getElementById('cname').value.trim();
+    let t=document.getElementById('ctel').value.trim().replace(/-/g,'');
+    let ok=true;
+    document.getElementById('err-name').style.display='none';
+    document.getElementById('err-tel').style.display='none';
+    if(!n){document.getElementById('err-name').style.display='block';ok=false;}
+    if(!isValidTel(t)){document.getElementById('err-tel').style.display='block';ok=false;}
+    if(!ok)return;
+    state.cname=n;state.ctel=t;
+    state.ccontact=document.getElementById('ccontact').value.trim();
+    showStep(2);
+  } else if(from===2){
+    document.getElementById('err-kimono').style.display='none';
+    document.getElementById('err-cond').style.display='none';
+    if(!state.kimono){document.getElementById('err-kimono').style.display='block';return;}
+    if(!state.cond){document.getElementById('err-cond').style.display='block';return;}
+    showStep(3);
+  } else if(from===3){
+    rebuildSelections();
+    document.getElementById('err-remake').style.display='none';
+    if(state.remakes.length===0){document.getElementById('err-remake').style.display='block';return;}
+    state.sizenote=document.getElementById('sizenote').value.trim();
+    showStep(4);
+  } else if(from===4){
+    buildConfirm();showStep(5);
+  }
+}
+
+function goBack(from){showStep(from-1);}
+
+function buildConfirm(){
+  rebuildSelections();
+  let remakeAmt=state.remakes.reduce(function(a,r){return a+r.price;},0);
+  let optAmt=state.options.reduce(function(a,o){return a+o.price;},0);
+  let total=remakeAmt+optAmt;
+  document.getElementById('c-remake').textContent='¥'+remakeAmt.toLocaleString();
+  document.getElementById('c-opt').textContent=optAmt>0?'¥'+optAmt.toLocaleString():'なし';
+  document.getElementById('c-total').textContent='¥'+total.toLocaleString();
+  let telDisp=state.ctel.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3');
+  let rows=[
+    ['お名前',state.cname],
+    ['携帯電話',telDisp],
+    ['LINE・メール',state.ccontact||'未記入'],
+    ['着物の種類',state.kimono],
+    ['状　態',state.cond],
+    ['リメイク内容',state.remakes.map(function(r){return r.label+'（¥'+r.price.toLocaleString()+'）';}).join('、')],
+    ['オプション',state.options.map(function(o){return o.label;}).join('、')||'なし'],
+    ['ご要望',state.sizenote||'なし'],
+    ['写　真',state.imgFiles.length>0?state.imgFiles.length+'枚':'なし'],
+  ];
+  document.getElementById('confirm-area').innerHTML=rows.map(function(x){
+    return '<div class="confirm-row"><span class="confirm-label">'+x[0]+'</span><span class="confirm-val">'+x[1]+'</span></div>';
+  }).join('');
+}
+
+function fileToBase64(file){
+  return new Promise(function(resolve,reject){
+    let r=new FileReader();
+    r.onload=function(e){resolve({name:file.name,mimeType:file.type,data:e.target.result.split(',')[1]});};
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+}
+
+async function submitOrder(){
+  let btn=document.getElementById('submit-btn');
+  let msg=document.getElementById('sending-msg');
+  btn.disabled=true;btn.style.display='none';msg.style.display='block';
+  try{
+    rebuildSelections();
+    let images=await Promise.all(state.imgFiles.map(function(f){return fileToBase64(f);}));
+    let remakeAmt=state.remakes.reduce(function(a,r){return a+r.price;},0);
+    let optAmt=state.options.reduce(function(a,o){return a+o.price;},0);
+    let payload=Object.assign({},state,{images:images,total:remakeAmt+optAmt});
+    delete payload.imgFiles;
+    await fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    document.getElementById('done-msg').innerHTML=state.cname+'さん、<br>ありがとうございます。<br>Ryuよりご連絡いたします。';
+    document.getElementById('step-ind').style.display='none';
+    showStep(6);
+  } catch(err){
+    msg.style.display='none';btn.style.display='block';btn.disabled=false;
+    alert('送信中にエラーが発生しました。もう一度お試しください。');
+  }
+}
+
+function newOrder(){
+  state={cname:'',ctel:'',ccontact:'',kimono:'',cond:'',remakes:[],options:[],sizenote:'',imgFiles:[]};
+  document.getElementById('cname').value='';
+  document.getElementById('ctel').value='';
+  document.getElementById('ccontact').value='';
+  document.getElementById('sizenote').value='';
+  document.getElementById('sonota-text').value='';
+  document.getElementById('sonota-price').value='';
+  document.getElementById('sonota-wrap').classList.remove('show');
+  document.getElementById('preview-area').innerHTML='';
+  document.querySelectorAll('.sel-btn.selected,.opt-btn.selected').forEach(function(b){b.classList.remove('selected');});
+  document.getElementById('step-ind').style.display='flex';
+  document.getElementById('submit-btn').style.display='block';
+  document.getElementById('submit-btn').disabled=false;
+  document.getElementById('sending-msg').style.display='none';
+  showStep(1);
+}
+
+function previewImgs(input){
+  let pa=document.getElementById('preview-area');
+  pa.innerHTML='';state.imgFiles=[];
+  Array.from(input.files).forEach(function(f){
+    state.imgFiles.push(f);
+    let r=new FileReader();
+    r.onload=function(e){
+      let img=document.createElement('img');
+      img.src=e.target.result;img.className='preview-img';img.alt='着物の写真';
+      pa.appendChild(img);
+    };
+    r.readAsDataURL(f);
+  });
+}
+</script>
+</body>
+</html>
