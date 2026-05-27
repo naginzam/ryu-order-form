@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ryu リメイク着物 ご注文フォーム</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:#f7f6f3;color:#222;min-height:100vh;padding:20px 16px 40px}
@@ -63,6 +64,8 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
 .btn-submit:active{opacity:.85}
 .btn-submit:disabled{opacity:.5;cursor:not-allowed}
 .btn-fix{width:100%;padding:14px;font-size:15px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#666;font-family:inherit;font-weight:600;margin-top:10px}
+.btn-screenshot{width:100%;padding:16px;font-size:17px;border:1.5px solid #2563EB;border-radius:12px;cursor:pointer;background:#fff;color:#2563EB;font-family:inherit;font-weight:700;margin-top:10px;transition:all .15s}
+.btn-screenshot:active{background:#EFF6FF}
 .confirm-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee;font-size:16px}
 .confirm-label{color:#888;width:120px;flex-shrink:0}
 .confirm-val{color:#222;text-align:right;word-break:break-all}
@@ -72,11 +75,11 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
 .done-icon{font-size:64px;margin-bottom:12px}
 .done-title{font-size:24px;font-weight:700;margin-bottom:8px}
 .done-sub{font-size:16px;color:#888;line-height:1.7;margin-bottom:24px}
-.btn-new{width:100%;padding:16px;font-size:17px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#222;font-family:inherit;font-weight:600}
+.btn-new{width:100%;padding:16px;font-size:17px;border:1.5px solid #ddd;border-radius:12px;cursor:pointer;background:#fff;color:#222;font-family:inherit;font-weight:600;margin-bottom:10px}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="main-wrap">
   <h1>🎋 Ryu リメイク着物</h1>
   <p class="subtitle">ご注文フォーム</p>
 
@@ -92,7 +95,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
     <div class="step-col"><div class="dot" id="d5">5</div><div class="step-label">確認</div></div>
   </div>
 
-  <!-- ステップ1：お客様情報 -->
+  <!-- ステップ1 -->
   <div id="p1" class="panel active">
     <div class="card">
       <div class="card-title">お客様の情報</div>
@@ -118,7 +121,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
     </div>
   </div>
 
-  <!-- ステップ2：着物情報 -->
+  <!-- ステップ2 -->
   <div id="p2" class="panel">
     <div class="card">
       <div class="card-title">着物の種類</div>
@@ -146,7 +149,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
     </div>
   </div>
 
-  <!-- ステップ3：リメイク内容 -->
+  <!-- ステップ3 -->
   <div id="p3" class="panel">
     <div class="card">
       <div class="card-title">リメイク内容</div>
@@ -169,7 +172,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
       <button class="opt-btn" data-type="remake" data-price="2000" data-label="タペストリー">
         <span>タペストリー</span><span class="opt-price">¥2,000</span><span class="check">✓</span>
       </button>
-      <button class="opt-btn" id="btn-sonota" data-type="remake" data-price="0" data-label="その他" onclick="toggleSonota(this)">
+      <button class="opt-btn" id="btn-sonota" data-type="remake" data-price="0" data-label="その他">
         <span>その他</span><span class="opt-price">金額を入力</span><span class="check">✓</span>
       </button>
       <div class="sonota-wrap" id="sonota-wrap">
@@ -179,7 +182,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
         </div>
         <div class="field">
           <label style="font-size:15px">金額（円）</label>
-          <input type="number" id="sonota-price" placeholder="例：8000" inputmode="numeric" min="0" oninput="updateSonotaPrice()">
+          <input type="number" id="sonota-price" placeholder="例：8000" inputmode="numeric" min="0" oninput="rebuildSelections()">
         </div>
       </div>
       <div class="err" id="err-remake" style="margin-top:8px">ひとつ以上選んでください</div>
@@ -200,7 +203,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
     </div>
   </div>
 
-  <!-- ステップ4：写真 -->
+  <!-- ステップ4 -->
   <div id="p4" class="panel">
     <div class="card">
       <div class="card-title">お着物の写真</div>
@@ -219,7 +222,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
     </div>
   </div>
 
-  <!-- ステップ5：確認 -->
+  <!-- ステップ5 -->
   <div id="p5" class="panel">
     <div class="card">
       <div class="card-title">内容のご確認</div>
@@ -244,6 +247,7 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#222
         <div class="done-title">ご注文を受け付けました！</div>
         <div class="done-sub" id="done-msg">ありがとうございます。<br>Ryuよりご連絡いたします。</div>
         <button class="btn-new" onclick="newOrder()">＋　別のご注文をする</button>
+        <button class="btn-screenshot" onclick="takeScreenshot()">📸　この画面をスクリーンショット</button>
       </div>
     </div>
   </div>
@@ -286,17 +290,12 @@ document.querySelectorAll('.opt-btn:not(#btn-sonota)').forEach(function(b){
   });
 });
 
-function toggleSonota(btn){
-  btn.classList.toggle('selected');
+document.getElementById('btn-sonota').addEventListener('click',function(){
+  this.classList.toggle('selected');
   let wrap=document.getElementById('sonota-wrap');
-  wrap.classList.toggle('show',btn.classList.contains('selected'));
+  wrap.classList.toggle('show',this.classList.contains('selected'));
   rebuildSelections();
-}
-
-function updateSonotaPrice(){
-  let btn=document.getElementById('btn-sonota');
-  if(btn.classList.contains('selected'))rebuildSelections();
-}
+});
 
 function rebuildSelections(){
   state.remakes=[];state.options=[];
@@ -401,6 +400,24 @@ async function submitOrder(){
     msg.style.display='none';btn.style.display='block';btn.disabled=false;
     alert('送信中にエラーが発生しました。もう一度お試しください。');
   }
+}
+
+function takeScreenshot(){
+  let btn=document.querySelector('.btn-screenshot');
+  btn.textContent='📸 保存中...';
+  btn.disabled=true;
+  html2canvas(document.getElementById('main-wrap'),{
+    backgroundColor:'#f7f6f3',
+    scale:2,
+    useCORS:true
+  }).then(function(canvas){
+    let link=document.createElement('a');
+    link.download='Ryu注文完了_'+state.cname+'.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+    btn.textContent='📸 この画面をスクリーンショット';
+    btn.disabled=false;
+  });
 }
 
 function newOrder(){
